@@ -68,11 +68,13 @@
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
         L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
-        var fondDeCarte = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        var fondDeCarte = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZ29ucm8iLCJhIjoiY2szZzdhYzVwMDMxMjNkbjZodzA2ZG8wOSJ9.w_VkhpdmD-1pmMYcabUQwg', {
                             // afficher les référence de la carte. Dans ce cas, nous utilisons l'API MapBox pour afficher une carte issue des données produites par les contributeurs/trices d'Open Street Map
                             attribution: 'Carte produite par : Galfer NOUPA ! Fond de carte &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-                                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, '
-                            
+                                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                                'via © <a href="https://www.mapbox.com/">Mapbox</a>',
+                            // Choisir le style de carte. pour utiliser un style personnalisé : 'nom_utilisateur/clef_du_style' à récupérer ici : studio.mapbox.com
+                            id: 'mapbox/streets-v11'
                         }
             );
             // On attache le fond de carte créé plus haut à notre objet "maCarte"
