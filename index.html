@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css"><link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Géoportail des points de distribution des produits pétroliers de l'Ouest</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script><script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/PtroleparArrondissement_0.js"></script>
+        <script src="data/GazoleparArrondissement_1.js"></script>
+        <script src="data/SuperparArrondissement_2.js"></script>
+        <script src="data/Produit_LiquideparArrondissement_3.js"></script>
+        <script src="data/PtroleparDpartement_4.js"></script>
+        <script src="data/GazoleparDpartement_5.js"></script>
+        <script src="data/SuperparDpartement_6.js"></script>
+        <script src="data/Produit_LiquideDpartement_7.js"></script>
+        <script src="data/PointsdeDistribution_8.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var fondDeCarte = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                            // afficher les référence de la carte. Dans ce cas, nous utilisons l'API MapBox pour afficher une carte issue des données produites par les contributeurs/trices d'Open Street Map
+                            attribution: 'Carte produite par : Galfer NOUPA ! Fond de carte &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+                                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, '
+                            
+                        }
+            );
+            // On attache le fond de carte créé plus haut à notre objet "maCarte"
+            map.addLayer(fondDeCarte);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        function pop_PtroleparArrondissement_0(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom de l\'Arrondissement</th>\
+                        <td>' + (feature.properties['Nom_Adm3'] !== null ? autolinker.link(feature.properties['Nom_Adm3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Quantité Totale de pétrole (litre)</th>\
+                        <td>' + (feature.properties['VTCP'] !== null ? autolinker.link(feature.properties['VTCP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_PtroleparArrondissement_0_0(feature) {
+            if (feature.properties['VTCP'] >= 0.000000 && feature.properties['VTCP'] <= 0.000000 ) {
+                return {
+                pane: 'pane_PtroleparArrondissement_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,245,245,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCP'] >= 0.000000 && feature.properties['VTCP'] <= 20000.000000 ) {
+                return {
+                pane: 'pane_PtroleparArrondissement_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,239,171,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCP'] >= 20000.000000 && feature.properties['VTCP'] <= 50000.000000 ) {
+                return {
+                pane: 'pane_PtroleparArrondissement_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,198,120,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCP'] >= 50000.000000 && feature.properties['VTCP'] <= 100000.000000 ) {
+                return {
+                pane: 'pane_PtroleparArrondissement_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(73,163,48,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCP'] >= 100000.000000 && feature.properties['VTCP'] <= 300000.000000 ) {
+                return {
+                pane: 'pane_PtroleparArrondissement_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,104,55,0.75)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_PtroleparArrondissement_0');
+        map.getPane('pane_PtroleparArrondissement_0').style.zIndex = 400;
+        map.getPane('pane_PtroleparArrondissement_0').style['mix-blend-mode'] = 'normal';
+        var layer_PtroleparArrondissement_0 = new L.geoJson(json_PtroleparArrondissement_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PtroleparArrondissement_0',
+            layerName: 'layer_PtroleparArrondissement_0',
+            pane: 'pane_PtroleparArrondissement_0',
+            onEachFeature: pop_PtroleparArrondissement_0,
+            style: style_PtroleparArrondissement_0_0,
+        });
+        bounds_group.addLayer(layer_PtroleparArrondissement_0);
+        map.addLayer(layer_PtroleparArrondissement_0);
+        function pop_GazoleparArrondissement_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom de l\'Arrondissement</th>\
+                        <td>' + (feature.properties['Nom_Adm3'] !== null ? autolinker.link(feature.properties['Nom_Adm3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Quantité totale de gazole (Litre)</th>\
+                        <td>' + (feature.properties['VTCG'] !== null ? autolinker.link(feature.properties['VTCG'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_GazoleparArrondissement_1_0(feature) {
+            if (feature.properties['VTCG'] >= 0.000000 && feature.properties['VTCG'] <= 0.000000 ) {
+                return {
+                pane: 'pane_GazoleparArrondissement_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,212,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCG'] >= 0.000000 && feature.properties['VTCG'] <= 50000.000000 ) {
+                return {
+                pane: 'pane_GazoleparArrondissement_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,217,142,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCG'] >= 50000.000000 && feature.properties['VTCG'] <= 100000.000000 ) {
+                return {
+                pane: 'pane_GazoleparArrondissement_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,153,41,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCG'] >= 100000.000000 && feature.properties['VTCG'] <= 200000.000000 ) {
+                return {
+                pane: 'pane_GazoleparArrondissement_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(217,95,14,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCG'] >= 200000.000000 && feature.properties['VTCG'] <= 600000.000000 ) {
+                return {
+                pane: 'pane_GazoleparArrondissement_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(153,52,4,0.75)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_GazoleparArrondissement_1');
+        map.getPane('pane_GazoleparArrondissement_1').style.zIndex = 401;
+        map.getPane('pane_GazoleparArrondissement_1').style['mix-blend-mode'] = 'normal';
+        var layer_GazoleparArrondissement_1 = new L.geoJson(json_GazoleparArrondissement_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazoleparArrondissement_1',
+            layerName: 'layer_GazoleparArrondissement_1',
+            pane: 'pane_GazoleparArrondissement_1',
+            onEachFeature: pop_GazoleparArrondissement_1,
+            style: style_GazoleparArrondissement_1_0,
+        });
+        bounds_group.addLayer(layer_GazoleparArrondissement_1);
+        map.addLayer(layer_GazoleparArrondissement_1);
+        function pop_SuperparArrondissement_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom de l\'Arrondissement</th>\
+                        <td>' + (feature.properties['Nom_Adm3'] !== null ? autolinker.link(feature.properties['Nom_Adm3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Quantité de super</th>\
+                        <td>' + (feature.properties['VTCS'] !== null ? autolinker.link(feature.properties['VTCS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_SuperparArrondissement_2_0(feature) {
+            if (feature.properties['VTCS'] >= 0.000000 && feature.properties['VTCS'] <= 0.000000 ) {
+                return {
+                pane: 'pane_SuperparArrondissement_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,251,255,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCS'] >= 0.000000 && feature.properties['VTCS'] <= 50000.000000 ) {
+                return {
+                pane: 'pane_SuperparArrondissement_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,221,240,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCS'] >= 50000.000000 && feature.properties['VTCS'] <= 150000.000000 ) {
+                return {
+                pane: 'pane_SuperparArrondissement_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,179,216,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCS'] >= 150000.000000 && feature.properties['VTCS'] <= 300000.000000 ) {
+                return {
+                pane: 'pane_SuperparArrondissement_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(40,121,185,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTCS'] >= 300000.000000 && feature.properties['VTCS'] <= 650000.000000 ) {
+                return {
+                pane: 'pane_SuperparArrondissement_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(8,48,107,0.75)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_SuperparArrondissement_2');
+        map.getPane('pane_SuperparArrondissement_2').style.zIndex = 402;
+        map.getPane('pane_SuperparArrondissement_2').style['mix-blend-mode'] = 'normal';
+        var layer_SuperparArrondissement_2 = new L.geoJson(json_SuperparArrondissement_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_SuperparArrondissement_2',
+            layerName: 'layer_SuperparArrondissement_2',
+            pane: 'pane_SuperparArrondissement_2',
+            onEachFeature: pop_SuperparArrondissement_2,
+            style: style_SuperparArrondissement_2_0,
+        });
+        bounds_group.addLayer(layer_SuperparArrondissement_2);
+        map.addLayer(layer_SuperparArrondissement_2);
+        function pop_Produit_LiquideparArrondissement_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom de l\'Arrondissement</th>\
+                        <td>' + (feature.properties['Nom_Adm3'] !== null ? autolinker.link(feature.properties['Nom_Adm3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Volume totale produits liquides</th>\
+                        <td>' + (feature.properties['VTC'] !== null ? autolinker.link(feature.properties['VTC'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_Produit_LiquideparArrondissement_3_0(feature) {
+            if (feature.properties['VTC'] >= 0.000000 && feature.properties['VTC'] <= 0.000000 ) {
+                return {
+                pane: 'pane_Produit_LiquideparArrondissement_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,245,240,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTC'] >= 0.000000 && feature.properties['VTC'] <= 100000.000000 ) {
+                return {
+                pane: 'pane_Produit_LiquideparArrondissement_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,190,165,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTC'] >= 100000.000000 && feature.properties['VTC'] <= 250000.000000 ) {
+                return {
+                pane: 'pane_Produit_LiquideparArrondissement_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,112,80,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTC'] >= 250000.000000 && feature.properties['VTC'] <= 500000.000000 ) {
+                return {
+                pane: 'pane_Produit_LiquideparArrondissement_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(212,32,32,0.75)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['VTC'] >= 500000.000000 && feature.properties['VTC'] <= 1500000.000000 ) {
+                return {
+                pane: 'pane_Produit_LiquideparArrondissement_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(103,0,13,0.75)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_Produit_LiquideparArrondissement_3');
+        map.getPane('pane_Produit_LiquideparArrondissement_3').style.zIndex = 403;
+        map.getPane('pane_Produit_LiquideparArrondissement_3').style['mix-blend-mode'] = 'normal';
+        var layer_Produit_LiquideparArrondissement_3 = new L.geoJson(json_Produit_LiquideparArrondissement_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Produit_LiquideparArrondissement_3',
+            layerName: 'layer_Produit_LiquideparArrondissement_3',
+            pane: 'pane_Produit_LiquideparArrondissement_3',
+            onEachFeature: pop_Produit_LiquideparArrondissement_3,
+            style: style_Produit_LiquideparArrondissement_3_0,
+        });
+        bounds_group.addLayer(layer_Produit_LiquideparArrondissement_3);
+        map.addLayer(layer_Produit_LiquideparArrondissement_3);
+        function pop_PtroleparDpartement_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom du Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Volume total pétrole (litre)</th>\
+                        <td>' + (feature.properties['CTP'] !== null ? autolinker.link(feature.properties['CTP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_PtroleparDpartement_4_0(feature) {
+            switch(String(feature.properties['CTP'])) {
+                case '55000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,204,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '65000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,241,175,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '92500':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(184,226,149,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '105000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(141,207,130,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '124000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(100,188,110,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '171000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(59,168,89,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '320500':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(28,138,71,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '334000':
+                    return {
+                pane: 'pane_PtroleparDpartement_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,104,55,0.75)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_PtroleparDpartement_4');
+        map.getPane('pane_PtroleparDpartement_4').style.zIndex = 404;
+        map.getPane('pane_PtroleparDpartement_4').style['mix-blend-mode'] = 'normal';
+        var layer_PtroleparDpartement_4 = new L.geoJson(json_PtroleparDpartement_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PtroleparDpartement_4',
+            layerName: 'layer_PtroleparDpartement_4',
+            pane: 'pane_PtroleparDpartement_4',
+            onEachFeature: pop_PtroleparDpartement_4,
+            style: style_PtroleparDpartement_4_0,
+        });
+        bounds_group.addLayer(layer_PtroleparDpartement_4);
+        map.addLayer(layer_PtroleparDpartement_4);
+        function pop_GazoleparDpartement_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom du Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Volume total gazole (Litre)</th>\
+                        <td>' + (feature.properties['CTG'] !== null ? autolinker.link(feature.properties['CTG'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_GazoleparDpartement_5_0(feature) {
+            switch(String(feature.properties['CTG'])) {
+                case '110000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,212,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '135000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,234,172,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '170000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,208,128,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '193000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,171,70,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '230000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,136,33,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '266000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(223,103,17,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '581000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(190,76,9,1.0)',
+                interactive: true,
+            }
+                    break;
+                case '768000':
+                    return {
+                pane: 'pane_GazoleparDpartement_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(153,52,4,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_GazoleparDpartement_5');
+        map.getPane('pane_GazoleparDpartement_5').style.zIndex = 405;
+        map.getPane('pane_GazoleparDpartement_5').style['mix-blend-mode'] = 'normal';
+        var layer_GazoleparDpartement_5 = new L.geoJson(json_GazoleparDpartement_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazoleparDpartement_5',
+            layerName: 'layer_GazoleparDpartement_5',
+            pane: 'pane_GazoleparDpartement_5',
+            onEachFeature: pop_GazoleparDpartement_5,
+            style: style_GazoleparDpartement_5_0,
+        });
+        bounds_group.addLayer(layer_GazoleparDpartement_5);
+        map.addLayer(layer_GazoleparDpartement_5);
+        function pop_SuperparDpartement_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom du Département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nombre de station service</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Volume total super (litre)</th>\
+                        <td>' + (feature.properties['CTS'] !== null ? autolinker.link(feature.properties['CTS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_SuperparDpartement_6_0(feature) {
+            switch(String(feature.properties['CTS'])) {
+                case '140000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,251,255,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '145000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(216,231,245,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '213000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(176,210,232,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '225000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,179,216,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '361500':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,142,196,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '723000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(21,99,170,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '860000':
+                    return {
+                pane: 'pane_SuperparDpartement_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(8,48,107,0.75)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_SuperparDpartement_6');
+        map.getPane('pane_SuperparDpartement_6').style.zIndex = 406;
+        map.getPane('pane_SuperparDpartement_6').style['mix-blend-mode'] = 'normal';
+        var layer_SuperparDpartement_6 = new L.geoJson(json_SuperparDpartement_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_SuperparDpartement_6',
+            layerName: 'layer_SuperparDpartement_6',
+            pane: 'pane_SuperparDpartement_6',
+            onEachFeature: pop_SuperparDpartement_6,
+            style: style_SuperparDpartement_6_0,
+        });
+        bounds_group.addLayer(layer_SuperparDpartement_6);
+        map.addLayer(layer_SuperparDpartement_6);
+        function pop_Produit_LiquideDpartement_7(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nom du département</th>\
+                        <td>' + (feature.properties['Nom_Adm2'] !== null ? autolinker.link(feature.properties['Nom_Adm2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Région</th>\
+                        <td>' + (feature.properties['Nom_Adm1'] !== null ? autolinker.link(feature.properties['Nom_Adm1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">NSS</th>\
+                        <td>' + (feature.properties['NSS'] !== null ? autolinker.link(feature.properties['NSS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">CTPP</th>\
+                        <td>' + (feature.properties['CTPP'] !== null ? autolinker.link(feature.properties['CTPP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_Produit_LiquideDpartement_7_0(feature) {
+            switch(String(feature.properties['CTPP'])) {
+                case '305000':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,245,240,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '345000':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,221,205,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '487500':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,179,152,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '530000':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,134,102,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '560000':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,87,62,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '798500':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(222,41,36,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '1624500':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(179,18,23,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '1962000':
+                    return {
+                pane: 'pane_Produit_LiquideDpartement_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.75)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(103,0,13,0.75)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Produit_LiquideDpartement_7');
+        map.getPane('pane_Produit_LiquideDpartement_7').style.zIndex = 407;
+        map.getPane('pane_Produit_LiquideDpartement_7').style['mix-blend-mode'] = 'normal';
+        var layer_Produit_LiquideDpartement_7 = new L.geoJson(json_Produit_LiquideDpartement_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Produit_LiquideDpartement_7',
+            layerName: 'layer_Produit_LiquideDpartement_7',
+            pane: 'pane_Produit_LiquideDpartement_7',
+            onEachFeature: pop_Produit_LiquideDpartement_7,
+            style: style_Produit_LiquideDpartement_7_0,
+        });
+        bounds_group.addLayer(layer_Produit_LiquideDpartement_7);
+        map.addLayer(layer_Produit_LiquideDpartement_7);
+        function pop_PointsdeDistribution_8(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nature du point de distribution</th>\
+                        <td>' + (feature.properties['Nature'] !== null ? autolinker.link(feature.properties['Nature'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Marketer</th>\
+                        <td>' + (feature.properties['Marketer'] !== null ? autolinker.link(feature.properties['Marketer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Nom du point de distribution</th>\
+                        <td>' + (feature.properties['Designation'] !== null ? autolinker.link(feature.properties['Designation'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Autorisation d\'implantation</th>\
+                        <td>' + (feature.properties['Autorisation'] !== null ? autolinker.link(feature.properties['Autorisation'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">N° Agrément D1</th>\
+                        <td>' + (feature.properties['Agrement'] !== null ? autolinker.link(feature.properties['Agrement'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Département</th>\
+                        <td>' + (feature.properties['Departement'] !== null ? autolinker.link(feature.properties['Departement'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Arrondissement</th>\
+                        <td>' + (feature.properties['Arrondissement'] !== null ? autolinker.link(feature.properties['Arrondissement'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitude</th>\
+                        <td>' + (feature.properties['LATITUDE/Y'] !== null ? autolinker.link(feature.properties['LATITUDE/Y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitude</th>\
+                        <td>' + (feature.properties['LONGITUDE/X'] !== null ? autolinker.link(feature.properties['LONGITUDE/X'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Altitude</th>\
+                        <td>' + (feature.properties['ALTITUDE/Z'] !== null ? autolinker.link(feature.properties['ALTITUDE/Z'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Capacité Totale Super</th>\
+                        <td>' + (feature.properties['CapaciteTotaleSuper'] !== null ? autolinker.link(feature.properties['CapaciteTotaleSuper'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Capacité Totale Gazole</th>\
+                        <td>' + (feature.properties['CapaciteTotaleGasoil'] !== null ? autolinker.link(feature.properties['CapaciteTotaleGasoil'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Capacité Totale Pétrole</th>\
+                        <td>' + (feature.properties['CapaciteTotalePetrole'] !== null ? autolinker.link(feature.properties['CapaciteTotalePetrole'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_PointsdeDistribution_8_0(feature) {
+            switch(String(feature.properties['Nature'])) {
+                case 'Point Consommateur':
+                    return {
+                pane: 'pane_PointsdeDistribution_8',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/gas.svg',
+            iconSize: [13.68, 13.68]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Station Service':
+                    return {
+                pane: 'pane_PointsdeDistribution_8',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/transport_fuel.svg',
+            iconSize: [22.799999999999997, 22.799999999999997]
+        }),
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_PointsdeDistribution_8');
+        map.getPane('pane_PointsdeDistribution_8').style.zIndex = 408;
+        map.getPane('pane_PointsdeDistribution_8').style['mix-blend-mode'] = 'normal';
+        var layer_PointsdeDistribution_8 = new L.geoJson(json_PointsdeDistribution_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PointsdeDistribution_8',
+            layerName: 'layer_PointsdeDistribution_8',
+            pane: 'pane_PointsdeDistribution_8',
+            onEachFeature: pop_PointsdeDistribution_8,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.marker(latlng, style_PointsdeDistribution_8_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_PointsdeDistribution_8);
+        map.addLayer(layer_PointsdeDistribution_8);
+            var title = new L.Control();
+            title.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info');
+                this.update();
+                return this._div;
+            };
+            title.update = function () {
+                this._div.innerHTML = '<h2>Géoportail des points de distribution des produits pétroliers de l\'Ouest</h2>';
+            };
+            title.addTo(map);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        L.control.layers(baseMaps,{'Points de Distribution<br /><table><tr><td style="text-align: center;"><img src="legend/PointsdeDistribution_8_PointConsommateur0.png" /></td><td>Point Consommateur</td></tr><tr><td style="text-align: center;"><img src="legend/PointsdeDistribution_8_StationService1.png" /></td><td>Station Service</td></tr></table>': layer_PointsdeDistribution_8,'Produit_Liquide/Département<br /><table><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_3050000.png" /></td><td>305000</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_3450001.png" /></td><td>345000</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_4875002.png" /></td><td>487500</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_5300003.png" /></td><td>530000</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_5600004.png" /></td><td>560000</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_7985005.png" /></td><td>798500</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_16245006.png" /></td><td>1624500</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideDpartement_7_19620007.png" /></td><td>1962000</td></tr></table>': layer_Produit_LiquideDpartement_7,'Super par Département<br /><table><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_1400000.png" /></td><td>140000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_1450001.png" /></td><td>145000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_2130002.png" /></td><td>213000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_2250003.png" /></td><td>225000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_3615004.png" /></td><td>361500</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_7230005.png" /></td><td>723000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparDpartement_6_8600006.png" /></td><td>860000</td></tr></table>': layer_SuperparDpartement_6,'Gazole par Département<br /><table><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_1100000.png" /></td><td>110000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_1350001.png" /></td><td>135000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_1700002.png" /></td><td>170000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_1930003.png" /></td><td>193000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_2300004.png" /></td><td>230000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_2660005.png" /></td><td>266000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_5810006.png" /></td><td>581000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparDpartement_5_7680007.png" /></td><td>768000</td></tr></table>': layer_GazoleparDpartement_5,'Pétrole par Département<br /><table><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_550000.png" /></td><td>55000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_650001.png" /></td><td>65000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_925002.png" /></td><td>92500</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_1050003.png" /></td><td>105000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_1240004.png" /></td><td>124000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_1710005.png" /></td><td>171000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_3205006.png" /></td><td>320500</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparDpartement_4_3340007.png" /></td><td>334000</td></tr></table>': layer_PtroleparDpartement_4,'Produit_Liquide par Arrondissement<br /><table><tr><td style="text-align: center;"><img src="legend/Produit_LiquideparArrondissement_3_00.png" /></td><td>0</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideparArrondissement_3_1à100000L1.png" /></td><td>1 à 100000L</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideparArrondissement_3_100001à250000L2.png" /></td><td>100001 à 250000L</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideparArrondissement_3_250001à500000L3.png" /></td><td>250001 à 500000L</td></tr><tr><td style="text-align: center;"><img src="legend/Produit_LiquideparArrondissement_3_500001à1500000L4.png" /></td><td>500001 à 1500000L</td></tr></table>': layer_Produit_LiquideparArrondissement_3,'Super par Arrondissement<br /><table><tr><td style="text-align: center;"><img src="legend/SuperparArrondissement_2_000.png" /></td><td>0 - 0</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparArrondissement_2_1500001.png" /></td><td>1 - 50000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparArrondissement_2_500011500002.png" /></td><td>50001 - 150000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparArrondissement_2_1500013000003.png" /></td><td>150001 - 300000</td></tr><tr><td style="text-align: center;"><img src="legend/SuperparArrondissement_2_3000016500004.png" /></td><td>300001 - 650000</td></tr></table>': layer_SuperparArrondissement_2,'Gazole par Arrondissement<br /><table><tr><td style="text-align: center;"><img src="legend/GazoleparArrondissement_1_000.png" /></td><td>0 - 0</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparArrondissement_1_1500001.png" /></td><td>1 - 50000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparArrondissement_1_500011000002.png" /></td><td>50001 - 100000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparArrondissement_1_1000012000003.png" /></td><td>100001 - 200000</td></tr><tr><td style="text-align: center;"><img src="legend/GazoleparArrondissement_1_2000016000004.png" /></td><td>200001 - 600000</td></tr></table>': layer_GazoleparArrondissement_1,'Pétrole par Arrondissement<br /><table><tr><td style="text-align: center;"><img src="legend/PtroleparArrondissement_0_000.png" /></td><td>0 - 0</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparArrondissement_0_1200001.png" /></td><td>1 - 20000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparArrondissement_0_20001500002.png" /></td><td>20001 - 50000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparArrondissement_0_500011000003.png" /></td><td>50001 - 100000</td></tr><tr><td style="text-align: center;"><img src="legend/PtroleparArrondissement_0_1000013000004.png" /></td><td>100001 - 300000</td></tr></table>': layer_PtroleparArrondissement_0,},{collapsed:true}).addTo(map);
+        setBounds();
+        var i = 0;
+        layer_PointsdeDistribution_8.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['Marketer'] !== null?String('<div style="color: #000000; font-size: 7pt; font-weight: bold; font-style: italic; font-family: \'Gill Sans MT\', sans-serif;">' + layer.feature.properties['Marketer']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_PointsdeDistribution_8'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        map.addControl(new L.Control.Search({
+            layer: layer_PointsdeDistribution_8,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Marketer'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        resetLabels([layer_PtroleparArrondissement_0,layer_GazoleparArrondissement_1,layer_SuperparArrondissement_2,layer_Produit_LiquideparArrondissement_3,layer_PtroleparDpartement_4,layer_GazoleparDpartement_5,layer_SuperparDpartement_6,layer_Produit_LiquideDpartement_7,layer_PointsdeDistribution_8]);
+        map.on("zoomend", function(){
+            resetLabels([layer_PtroleparArrondissement_0,layer_GazoleparArrondissement_1,layer_SuperparArrondissement_2,layer_Produit_LiquideparArrondissement_3,layer_PtroleparDpartement_4,layer_GazoleparDpartement_5,layer_SuperparDpartement_6,layer_Produit_LiquideDpartement_7,layer_PointsdeDistribution_8]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_PtroleparArrondissement_0,layer_GazoleparArrondissement_1,layer_SuperparArrondissement_2,layer_Produit_LiquideparArrondissement_3,layer_PtroleparDpartement_4,layer_GazoleparDpartement_5,layer_SuperparDpartement_6,layer_Produit_LiquideDpartement_7,layer_PointsdeDistribution_8]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_PtroleparArrondissement_0,layer_GazoleparArrondissement_1,layer_SuperparArrondissement_2,layer_Produit_LiquideparArrondissement_3,layer_PtroleparDpartement_4,layer_GazoleparDpartement_5,layer_SuperparDpartement_6,layer_Produit_LiquideDpartement_7,layer_PointsdeDistribution_8]);
+        });
+        </script>
+    </body>
+</html>
